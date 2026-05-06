@@ -27,7 +27,7 @@ app.listen(PORT, () => {
 
 // endpoints
 // fetch events
-app.get('/api/events', (req, res) => {
+app.get(`/api/events`, (req, res) => {
     const sqlQuery = "SELECT * FROM events";
 
     db.query(sqlQuery, (err, results) => {
@@ -44,7 +44,7 @@ app.get('/api/events', (req, res) => {
 const PAYHERE_MERCHANT_SECRET = process.env.MERCHANT_SECRET;
 const PAYHERE_MERCHANT_ID = process.env.MERCHANT_ID;
 
-app.post('/api/generate-hash', (req,res) => {
+app.post(`/api/generate-hash`, (req,res) => {
     const {order_id, amount, currency} = req.body;
     const formattedAmount = parseFloat(amount).toFixed(2);
     const hashedSecret = crypto.createHash('md5').update(PAYHERE_MERCHANT_SECRET).digest('hex').toUpperCase();
@@ -59,7 +59,7 @@ const pass= process.env.EMAIL_PASS;
 
 app.use(express.urlencoded({extended:true}));
 
-app.post('/api/payhere-webhook', (req, res) => {
+app.post(`/api/payhere-webhook`, (req, res) => {
     const {
         merchant_id, order_id, payhere_amount, payhere_currency, status_code, md5sig, payment_id, custom_1, custom_2
     } = req.body;
