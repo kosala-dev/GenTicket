@@ -22,5 +22,7 @@ create table tickets(
     payhere_payment_id varchar(100) unique not null,
     qr_secure_hash varchar(255) unique not null,
     purchased_at timestamp default current_timestamp,
+    scanned_at timestamp null,
+    order_id VARCHAR(100) UNIQUE,
     foreign key (event_id) references events(event_id) on delete cascade on update cascade
 );
