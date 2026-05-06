@@ -75,8 +75,8 @@ app.post(`/api/payhere-webhook`, (req, res) => {
 
         const qrSecureHash = crypto.randomUUID();
         
-        const sqlQuery = 'INSERT INTO tickets(event_id, buyer_name, buyer_email, buyer_phone, payhere_payment_id, qr_secure_hash) VALUES(?,?,?,?,?,?)';
-        db.query(sqlQuery, [eventId, buyer.name, buyer.email, buyer.phone, payment_id, qrSecureHash], (err,result) => {
+        const sqlQuery = 'INSERT INTO tickets(event_id, order_id, buyer_name, buyer_email, buyer_phone, payhere_payment_id, qr_secure_hash) VALUES(?,?,?,?,?,?,?)';
+        db.query(sqlQuery, [eventId, order_id, buyer.name, buyer.email, buyer.phone, payment_id, qrSecureHash], (err,result) => {
             if(err){
                 console.error("Failed to insert ticket: ", err);
                 return res.status(500).send("Database error");
@@ -92,7 +92,8 @@ app.post(`/api/payhere-webhook`, (req, res) => {
 
                 // mailing
                 try {
-                    const qrImageBuffer = await QRCode.toBuffer(qrSecureHash);
+                    const verifyUrl = `http://localhost:5000/verify?ticket_hash=${qrSecureHash}`;
+                    const qrImageBuffer = await QRCode.toBuffer(verifyUrl);
 
                     const transporter = nodemailer.createTransport({
                         service: 'gmail',
@@ -138,4 +139,104 @@ app.post(`/api/payhere-webhook`, (req, res) => {
         console.error("Payment failed or invalid signature.");
         res.status(400).send("Invalid Request");
     }
+});
+
+// fetch ticket by order_id (payment_id)
+app.get('/api/ticket/:orderId', (req, res) => {
+  const { orderId } = req.params;
+  const query = 'SELECT ticket_id, qr_secure_hash FROM tickets WHERE order_id = ?';
+  db.query(query, [orderId], (err, results) => {
+    if (err) {
+      console.error('Ticket lookup failed:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    return res.status(200).json({
+      ticket_id: results[0].ticket_id,
+      ticket_hash: results[0].qr_secure_hash
+    });
+  });
+});
+
+// ticket scan verification
+app.post('/api/ticket-scan', (req, res) => {
+  const { ticket_hash } = req.body;
+  if (!ticket_hash) {
+    return res.status(400).json({ error: 'Missing ticket_hash' });
+  }
+
+  const selectQuery = 'SELECT * FROM tickets WHERE qr_secure_hash = ?';
+  db.query(selectQuery, [ticket_hash], (err, results) => {
+    if (err) {
+      console.error('Ticket lookup failed:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ status: 'invalid', message: 'Ticket not found' });
+    }
+
+    const ticket = results[0];
+    if (ticket.scanned_at) {
+      return res.status(409).json({
+        status: 'already_scanned',
+        message: 'Ticket has already been scanned',
+        scanned_at: ticket.scanned_at
+      });
+    }
+
+    const updateQuery = 'UPDATE tickets SET scanned_at = NOW() WHERE ticket_id = ?';
+    db.query(updateQuery, [ticket.ticket_id], (updateErr) => {
+      if (updateErr) {
+        console.error('Failed to mark ticket scanned:', updateErr);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      return res.status(200).json({
+        status: 'ok',
+        message: 'Ticket scanned successfully',
+        ticket_id: ticket.ticket_id,
+        event_id: ticket.event_id
+      });
+    });
+  });
+});
+
+// verify ticket via URL (for QR scanning)
+app.get('/verify', (req, res) => {
+  const { ticket_hash } = req.query;
+  if (!ticket_hash) {
+    return res.status(400).send('Missing ticket_hash');
+  }
+
+  const selectQuery = 'SELECT * FROM tickets WHERE qr_secure_hash = ?';
+  db.query(selectQuery, [ticket_hash], (err, results) => {
+    if (err) {
+      console.error('Ticket lookup failed:', err);
+      return res.status(500).send('Database error');
+    }
+
+    if (results.length === 0) {
+      return res.status(404).send('Invalid ticket');
+    }
+
+    const ticket = results[0];
+    if (ticket.scanned_at) {
+      return res.status(409).send('Ticket already scanned');
+    }
+
+    const updateQuery = 'UPDATE tickets SET scanned_at = NOW() WHERE ticket_id = ?';
+    db.query(updateQuery, [ticket.ticket_id], (updateErr) => {
+      if (updateErr) {
+        console.error('Failed to mark ticket scanned:', updateErr);
+        return res.status(500).send('Database error');
+      }
+
+      return res.status(200).send('Ticket scanned successfully');
+    });
+  });
 });
