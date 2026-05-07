@@ -92,7 +92,8 @@ app.post(`/api/payhere-webhook`, (req, res) => {
 
                 // mailing
                 try {
-                    const verifyUrl = `http://localhost:5000/verify?ticket_hash=${qrSecureHash}`;
+                    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+                    const verifyUrl = `${backendUrl}/verify?ticket_hash=${qrSecureHash}`;
                     const qrImageBuffer = await QRCode.toBuffer(verifyUrl);
 
                     const transporter = nodemailer.createTransport({
