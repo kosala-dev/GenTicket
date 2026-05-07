@@ -108,7 +108,7 @@ export default function LandingPage(){
             merchant_id: merchantId, 
             return_url: successUrl,
             cancel_url: `${window.location.origin}/`,
-            notify_url: "https://fee3-203-189-188-163.ngrok-free.app/api/payhere-webhook",
+            notify_url: `${API_URL}/api/payhere-webhook`,
             order_id: orderId,
             items: `${checkoutEvent.title} Ticket`,
             amount: amount,
@@ -159,7 +159,7 @@ export default function LandingPage(){
         setEmailStatus('sending');
 
         try {
-        const response = await fetch('http://localhost:5000/api/send-ticket', {
+        const response = await fetch(`${API_URL}/api/send-ticket`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
