@@ -17,7 +17,7 @@ export const translations = {
     contactUs: "Contact Us",
     aboutUs: "About Us",
     privacy: "Privacy & Policies",
-    rights: "All rights reserved © 2026 EventSync",
+    rights: "All rights reserved © 2026 GenTicket",
     soldout: "SOLD OUT",
     risk: "Please do not share the QR code with anyone"
   },
@@ -39,7 +39,7 @@ export const translations = {
     contactUs: "අප අමතන්න",
     aboutUs: "අප ගැන",
     privacy: "පෞද්ගලිකත්වය සහ ප්‍රතිපත්ති",
-    rights: "සියලුම හිමිකම් ඇවිරිණි © 2026 EventSync",
+    rights: "සියලුම හිමිකම් ඇවිරිණි © 2026 GenTicket",
     soldout: "විකිණි අවසන්",
     risk: "කරුණාකර මෙම QR කේතය කිසිවෙකු හා බෙදා නොගන්න​"
   }

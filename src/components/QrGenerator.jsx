@@ -87,7 +87,7 @@ return (
             <nav className="flex flex-col md:flex-row justify-between items-center p-4 bg-[#C2D8C4] shadow-sm w-full">
                 {/* project name */}
                 <div onClick={() => navigate("/")} className="text-2xl font-bold tracking-tight mb-4 md:mb-0 text-[#222222] cursor-pointer">
-                    EventSync.lk
+                    GenTicket.lk
                 </div>
 
                 {/* language */}
@@ -159,9 +159,9 @@ return (
             <footer className=" bg-[#C2D8C4] border-t border-gray-200 py-10 mt-auto">
                 <div className="max-w-7xl mx-auto flex flex-col items-center gap-4">
                     <div className="flex gap-8 text-sm font-medium text-gray-600">
-                        <a href="#" className="hover:text-gray-900 transition-colors text-[#222222]">{t.contactUs}</a>
-                        <a href="#" className="hover:text-gray-900 transition-colors text-[#222222]">{t.aboutUs}</a>
-                        <a href="#" className="hover:text-gray-900 transition-colors text-[#222222]">{t.privacy}</a>
+                        <a href="/contact" className="hover:text-gray-900 transition-colors text-[#222222]">{t.contactUs}</a>
+                        <a href="/aboutus" className="hover:text-gray-900 transition-colors text-[#222222]">{t.aboutUs}</a>
+                        <a href="/privacy" className="hover:text-gray-900 transition-colors text-[#222222]">{t.privacy}</a>
                     </div>
                     <div className="text-sm text-gray-500">
                         {t.rights}
