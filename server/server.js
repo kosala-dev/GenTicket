@@ -14,11 +14,11 @@ app.use(express.json());
 
 // connection 
 const db = mysql.createPool({
-    host: process.env.DB_HOST,
+    host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: process.env.DB_NAME
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASS || '',
+    database: process.env.DB_NAME || 'genticket'
 });
 
 const PORT = 5000;
@@ -107,14 +107,14 @@ app.post(`/api/payhere-webhook`, (req, res) => {
 
                     // Draft the email
                     const mailOptions = {
-                        from: `"EventSync.lk" <${user}>`,
+                        from: `"GenTicket.lk" <${user}>`,
                         to: buyer.email,
                         subject: `Your Ticket for ${buyer.eventName}`,
                         html: `
                             <div style="font-family: sans-serif; text-align: center; padding: 20px;">
                                 <h2>You are going to ${buyer.eventName}!</h2>
                                 <p>Hi ${buyer.name},</p>
-                                <p>Thank you for booking with EventSync.lk. Please present the attached QR code at the entrance.</p>
+                                <p>Thank you for booking with GenTicket.lk. Please present the attached QR code at the entrance.</p>
                                 <p style="color: red; font-size: 12px;">Do not share this email or QR code with anyone.</p>
                             </div>
                         `,
@@ -241,4 +241,76 @@ app.get('/verify', (req, res) => {
       return res.status(200).send('Ticket scanned successfully');
     });
   });
+});
+
+
+// OTPs memory eke save karaganna hadapu object eka
+const otps = {}; 
+
+//Send OTP 
+app.post('/api/send-otp', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+    }
+
+    // 6-digit random code ekak hadanawa
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Email eka key eka widiyata dala OTP eka save karanawa
+    otps[email] = otp;
+
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: user, 
+                pass: pass
+            }
+        });
+
+        const mailOptions = {
+            from: `"GenTicket.lk" <${user}>`,
+            to: email,
+            subject: 'GenTicket - Checkout Verification Code',
+            html: `
+                <div style="font-family: sans-serif; text-align: center; padding: 20px;">
+                    <h2>Verify Your Email</h2>
+                    <p>You are one step away from getting your ticket.</p>
+                    <p>Your OTP code is: <strong style="font-size: 24px; color: #222222; letter-spacing: 2px;">${otp}</strong></p>
+                    <p style="color: gray; font-size: 14px;">This code is valid for this session only. Do not share this with anyone.</p>
+                </div>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log(`✅ OTP sent successfully to ${email}`);
+        
+        res.status(200).json({ message: "OTP sent successfully" });
+
+    } catch (error) {
+        console.error("Failed to send OTP email: ", error);
+        res.status(500).json({ error: "Failed to send email. Please try again." });
+    }
+});
+
+// Verify OTP 
+app.post('/api/verify-otp', (req, res) => {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+        return res.status(400).json({ error: "Email and OTP are required" });
+    }
+
+    // Code eka match wenawada balanawa
+    if (otps[email] === otp) {
+        // Match unoth security ekata eka memory eken delete karala danawa
+        delete otps[email]; 
+        console.log(`✅ Email verified for ${email}`);
+        res.status(200).json({ message: "Verified successfully" });
+    } else {
+        console.error(`❌ Invalid OTP attempt for ${email}`);
+        res.status(400).json({ error: "Invalid or expired OTP code" });
+    }
 });
