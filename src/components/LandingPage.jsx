@@ -26,6 +26,7 @@ export default function LandingPage(){
     const [otpSent, setOtpSent] = useState(false);
     const [otpCode, setOtpCode] = useState('');
     const [isVerified, setIsVerified] = useState(false);
+    const [showNotice, setShowNotice] = useState(true);
 
     // fetch events
     useEffect(() => {
@@ -298,6 +299,46 @@ export default function LandingPage(){
                     {t.lang}: {lang}
                 </div>
             </nav>
+
+            {/* demo */}
+            {showNotice && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-100 text-center">
+                        <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+                            ⚠️
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Demo Mode</h3>
+                        <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                            Welcome! Please note that <span className="font-semibold text-gray-900">GenTicket</span> is currently hosted as for testing and evaluation purposes. All transactions are simulated, and no real payments will be processed. Enjoy exploring the features!
+                        </p>
+                        <button 
+                            onClick={() => setShowNotice(false)}
+                            className="w-full bg-[#222222] hover:bg-black text-white font-bold py-3 rounded-xl transition-colors shadow-sm cursor-pointer"
+                        >
+                            Got it, Explore Site
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Bottom-Right Floating Badge */}
+            <div className="fixed bottom-5 right-5 z-50 bg-white/90 backdrop-blur-md border border-gray-200 shadow-xl rounded-2xl p-4 max-w-xs flex items-start gap-3 animate-bounce-short">
+                <div className="w-8 h-8 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center shrink-0 font-bold text-sm">
+                    💡
+                </div>
+                <div className="flex-1">
+                    <h4 className="text-xs font-bold text-gray-900">Portfolio Demo Mode</h4>
+                    <p className="text-[11px] text-gray-600 mt-0.5">
+                        GenTicket.lk is running live for testing & evaluation.
+                    </p>
+                </div>
+                <button 
+                    onClick={(e) => e.target.closest('div.fixed').remove()} 
+                    className="text-gray-400 hover:text-gray-600 text-xs font-bold px-1"
+                >
+                    ✕
+                </button>
+            </div>
 
             <div className="w-full relative mt-3">
                 
