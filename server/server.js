@@ -4,7 +4,6 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
 
 
@@ -12,18 +11,40 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const sendEmail = async ({ to, subject, html, attachments = [] }) => {
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.EMAIL_FROM;
+
+    if (!apiKey || !from) {
+        throw new Error('RESEND_API_KEY and EMAIL_FROM must be configured');
+    }
+
+    const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ from, to, subject, html, attachments })
+    });
+
+    if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`Resend API request failed (${response.status}): ${detail}`);
+    }
+};
+
 // connection 
 const db = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
+    port: process.env.DB_PORT || 25642,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASS || '',
     database: process.env.DB_NAME || 'genticket'
 });
 
-const PORT = 5000;
-app.listen(PORT, () => {
-    console.log(`server is running on port ${PORT}`);
+app.listen(process.env.PORT || 5000, () => {
+    console.log(`server is running on port ${process.env.PORT || 25642}`);
 });
 
 // endpoints
@@ -55,9 +76,6 @@ app.post(`/api/generate-hash`, (req,res) => {
 });
 
 // save the ticket details after success
-const user= process.env.EMAIL_USER;
-const pass= process.env.EMAIL_PASS;
-
 app.use(express.urlencoded({extended:true}));
 
 app.post(`/api/payhere-webhook`, (req, res) => {
@@ -97,17 +115,7 @@ app.post(`/api/payhere-webhook`, (req, res) => {
                     const verifyUrl = `${backendUrl}/verify?ticket_hash=${qrSecureHash}`;
                     const qrImageBuffer = await QRCode.toBuffer(verifyUrl);
 
-                    const transporter = nodemailer.createTransport({
-                        service: 'gmail',
-                        auth: {
-                            user: user,
-                            pass: pass
-                        }
-                    });
-
-                    // Draft the email
-                    const mailOptions = {
-                        from: `"GenTicket.lk" <${user}>`,
+                    await sendEmail({
                         to: buyer.email,
                         subject: `Your Ticket for ${buyer.eventName}`,
                         html: `
@@ -121,13 +129,11 @@ app.post(`/api/payhere-webhook`, (req, res) => {
                         attachments: [
                             {
                                 filename: `${buyer.eventName.replace(/\s+/g, '-')}-Ticket.png`,
-                                content: qrImageBuffer,
-                                contentType: 'image/png'
+                                content: qrImageBuffer.toString('base64'),
+                                content_type: 'image/png'
                             }
                         ]
-                    };
-
-                    await transporter.sendMail(mailOptions);
+                    });
                     console.log(`✅ Success! Ticket saved, capacity reduced, and emailed to ${buyer.email}`);
 
                 } catch (emailError) {
@@ -262,16 +268,7 @@ app.post('/api/send-otp', async (req, res) => {
     otps[email] = otp;
 
     try {
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: user, 
-                pass: pass
-            }
-        });
-
-        const mailOptions = {
-            from: `"GenTicket.lk" <${user}>`,
+        await sendEmail({
             to: email,
             subject: 'GenTicket - Checkout Verification Code',
             html: `
@@ -282,14 +279,13 @@ app.post('/api/send-otp', async (req, res) => {
                     <p style="color: gray; font-size: 14px;">This code is valid for this session only. Do not share this with anyone.</p>
                 </div>
             `
-        };
-
-        await transporter.sendMail(mailOptions);
+        });
         console.log(`✅ OTP sent successfully to ${email}`);
         
         res.status(200).json({ message: "OTP sent successfully" });
 
     } catch (error) {
+        delete otps[email];
         console.error("Failed to send OTP email: ", error);
         res.status(500).json({ error: "Failed to send email. Please try again." });
     }
